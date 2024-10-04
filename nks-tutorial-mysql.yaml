@@ -1,0 +1,87 @@
+# PersistentVolume(PV) 정의
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: mysql-pv  # PV의 이름을 정의합니다.
+  labels:
+    type: local  # PV의 유형을 나타내는 레이블입니다.
+spec:
+  storageClassName: manual  # 수동으로 관리되는 스토리지 클래스 이름을 지정합니다.
+  capacity:
+    storage: 10Gi  # 이 PV의 총 저장 용량을 정의합니다 (10GiB).
+  accessModes:
+    - ReadWriteOnce  # PV는 한 노드에서 읽기/쓰기가 가능합니다.
+  hostPath:
+    path: "/tmp/data"  # PV가 호스트 시스템의 어느 경로를 사용할지 지정합니다.
+---
+# PersistentVolumeClaim(PVC) 정의
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim  # PVC의 이름을 정의합니다.
+  labels:
+    app: wordpress  # 이 PVC가 워드프레스와 관련이 있음을 나타내는 레이블입니다.
+spec:
+  storageClassName: manual  # PVC가 사용할 스토리지 클래스입니다.
+  accessModes:
+    - ReadWriteOnce  # PVC는 한 노드에서 읽기/쓰기가 가능합니다.
+  resources:
+    requests:
+      storage: 10Gi  # 이 PVC가 요청하는 저장 용량입니다 (10GiB).
+---
+# MySQL을 위한 Deployment 정의
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-mysql  # Deployment의 이름입니다.
+  labels:
+    app: wordpress  # 워드프레스 앱과 관련된 라벨입니다.
+spec:
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: mysql  # MySQL 티어를 지정하여 앱의 역할을 정의합니다.
+  strategy:
+    type: Recreate  # 업데이트 시 기존 Pod를 종료하고 새로운 Pod를 생성하는 전략입니다.
+  template:
+    metadata:
+      labels:
+        app: wordpress  # Pod에 적용될 라벨입니다.
+        tier: mysql  # Pod의 역할을 정의하는 라벨입니다.
+    spec:
+      containers:
+      - image: mysql:5.6  # MySQL 컨테이너의 이미지 버전을 지정합니다.
+        name: mysql  # 컨테이너 이름입니다.
+        env:
+        - name: MYSQL_ROOT_PASSWORD  # MySQL의 루트 비밀번호 환경 변수를 설정합니다.
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass  # MySQL 비밀번호가 저장된 Secret의 이름입니다.
+              key: password  # 비밀번호 값이 있는 키를 지정합니다.
+        ports:
+        - containerPort: 3306  # MySQL이 사용하는 포트를 정의합니다.
+          name: mysql  # 포트 이름입니다.
+        volumeMounts:
+        - name: mysql-persistent-storage  # PVC와 연결될 볼륨의 이름입니다.
+          mountPath: /var/lib/mysql  # MySQL 데이터가 저장될 경로입니다.
+      volumes:
+      - name: mysql-persistent-storage  # PVC를 참조하는 볼륨 정의입니다.
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim  # 사용할 PVC의 이름입니다.
+---
+# MySQL을 위한 Service 정의
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mysql  # Service의 이름입니다.
+  labels:
+    app: wordpress  # 워드프레스 앱과 관련된 라벨입니다.
+spec:
+  ports:
+    - port: 3306  # MySQL이 외부에 노출될 포트를 정의합니다.
+  selector:
+    app: wordpress
+    tier: mysql  # Service가 연결할 Pod를 선택하는 라벨입니다.
+  clusterIP: None  # ClusterIP를 'None'으로 설정하여 이 서비스가 헤드리스 모드로 작동하게 합니다.
+
+

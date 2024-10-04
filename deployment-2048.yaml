@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-2048  # Deployment의 이름을 정의합니다.
+spec:
+  replicas: 2  # 배포할 Pod의 개수를 정의합니다.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-2048  # Pod를 선택하는 라벨입니다.
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-2048  # Pod에 적용될 라벨입니다.
+    spec:
+      containers:
+      - name: app-2048  # 컨테이너의 이름입니다.
+        image: alexwhen/docker-2048  # 컨테이너 이미지의 이름과 버전을 정의합니다.
+        ports:
+        - containerPort: 80  # 애플리케이션이 사용하는 포트입니다 (HTTP 포트).
+

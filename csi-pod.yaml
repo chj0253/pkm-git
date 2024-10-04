@@ -1,0 +1,57 @@
+# Persistent Volume Claim (PVC) 설정 - 첫 번째 PVC
+# 이 PVC는 "csi-pod-1"이라는 이름으로 정의되며, 10Gi의 저장 공간을 요청합니다.
+# nks-block-storage 스토리지 클래스를 사용하여 ReadWriteOnce 접근 모드를 지정합니다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-pod-1  # PVC의 이름
+spec:
+  accessModes:
+  - ReadWriteOnce  # 한 노드에서만 읽기/쓰기 가능
+  resources:
+    requests:
+      storage: 10Gi  # 요청하는 스토리지 크기
+  storageClassName: nks-block-storage  # 사용할 스토리지 클래스
+
+---
+# Persistent Volume Claim (PVC) 설정 - 두 번째 PVC
+# 이 PVC는 "csi-pod-2"라는 이름으로 정의되며, 10Gi의 저장 공간을 요청합니다.
+# nks-block-storage 스토리지 클래스를 사용하여 ReadWriteOnce 접근 모드를 지정합니다.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-pod-2  # PVC의 이름
+spec:
+  accessModes:
+  - ReadWriteOnce  # 한 노드에서만 읽기/쓰기 가능
+  resources:
+    requests:
+      storage: 10Gi  # 요청하는 스토리지 크기
+  storageClassName: nks-block-storage  # 사용할 스토리지 클래스
+
+---
+# Pod 정의
+# 이 Pod는 "my-csi-app"이라는 이름으로 정의되며, busybox 이미지를 사용합니다.
+# Pod에는 두 개의 볼륨이 마운트되며, 각각 앞서 정의한 PVC를 참조합니다.
+kind: Pod
+apiVersion: v1
+metadata:
+  name: my-csi-app  # Pod의 이름
+spec:
+  containers:
+    - name: my-csi-app  # 컨테이너의 이름
+      image: busybox  # 사용할 컨테이너 이미지 (busybox)
+      volumeMounts:
+      - mountPath: "/data/pod-1/"  # 첫 번째 볼륨이 마운트될 경로
+        name: my-volume-1  # 첫 번째 볼륨의 이름
+      - mountPath: "/data/pod-2/"  # 두 번째 볼륨이 마운트될 경로
+        name: my-volume-2  # 두 번째 볼륨의 이름
+      command: [ "sleep", "1000000" ]  # 컨테이너가 계속 실행되도록 sleep 명령 실행
+  volumes:
+    - name: my-volume-1  # 첫 번째 볼륨의 이름
+      persistentVolumeClaim:
+        claimName: csi-pod-1  # 첫 번째 PVC를 참조
+    - name: my-volume-2  # 두 번째 볼륨의 이름
+      persistentVolumeClaim:
+        claimName: csi-pod-2  # 두 번째 PVC를 참조
+
