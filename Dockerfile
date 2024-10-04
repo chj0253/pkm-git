@@ -15,4 +15,3 @@ COPY app.py /app
  
 # uWSGI와 Nginx 비활성화 및 Flask 직접 실행
 CMD ["python", "app.py"]
-```
